@@ -1,100 +1,64 @@
-import { assign, createMachine } from "xstate";
+import { assign, createMachine, interpret } from "xstate";
 
-export interface SimpleDataFetchMachineContext {
-    data?: Data;
-    errorMessage?: string;
+function isPlayValid(ctxt: any, event: any) {
+    console.log({ msg: "isPlayValid", ctxt, event });
+    return event.card.number > 5; //Math.random() > 0.5;
 }
 
-interface Variables {
-    id: string;
+function isEndOfRound(ctxt: any, event: any) {
+    return Math.random() > 0.5;
 }
-
-interface Data {
-    name: string;
+function addPlayToContext(ctxt: any, event: any) {
+    console.log({ msg: "adding play to ctxt", ctxt, event });
 }
-
-export type SimpleDataFetchMachineEvent =
-    | {
-          type: "FETCH";
-          variables: Variables;
-      }
-    | {
-          type: "RECEIVE_DATA";
-          data: Data;
-      }
-    | {
-          type: "CANCEL";
-      };
-
-const simpleDataFetchMachine =
-    /** @xstate-layout N4IgpgJg5mDOIC5SwJYFsAOAbMARAhgC74BiYhAxgBYB0KEOAxCQKIAqAwgBKKgYD2qQin4A7XiAAeiAEwBWGgE4AjAA4AbAHYAzDJmqZ2gCza5RgDQgAnonWqamo+rVGN2jU-UBfL5dSYcAmIySloAM3JqFFEoRjAAJ3j+eJpsIjDktBp-bDwiUkjwwuioBGiAN34KIhFRAG0ABgBdCQEhWolpBG1dGi0ZBu1FTWG5ZXHLGwQ1e3llIzlFU09VRVUfP3RcoILQmgjQkuZ2blbBFGExTsRlBpkaBuVtO9U5eRl1E01J2WUFQbc6mc2mUzlU618IBygXyIWo+2KMUYHAAggA5DgsAAyZ3aVyQUkQugaNHmRjWMkUC3BmnUP264xoPU0ehkrieyk0cjkGyhWxhwUKCMOSIASixMQBJABqLAA+rgUWwUbiLh0CV1dAowfoQSZ1A1FhZrET1IoHMMtEZNKsnjafJDRPwIHAJNC8oK9vQcDQnSxEslVZdxBrbCCHHpTIo5J8gSp6WaaGZVuoeooZE9Fopee6dnDaN6wDQEkl4pAg+rQF1U+oI4ZFjHPPGTdNwTRXDGGncPqsudoc-yPbt4YWK-iq7YGpo61HG3HlPSALT3IwZxRaJZGLeaTRTgcBIf54VRGJjkMThDW+k9h4NVS7mNcu6LffbWGFM-XaZKNRaXT6QwTDMGQl0cJl0w0V4jEeLs3gdLwgA */
-    createMachine<SimpleDataFetchMachineContext, SimpleDataFetchMachineEvent>(
-        {
-            context: {},
-            predictableActionArguments: true,
-            id: "simpleDataFetch",
-            initial: "idle",
-            states: {
-                idle: {
-                    initial: "noError",
-                    states: {
-                        noError: {
-                            entry: "clearErrorMessage",
-                        },
-                        errored: {},
-                    },
-                    on: {
-                        FETCH: {
-                            target: "fetching",
-                        },
-                    },
-                },
-                fetching: {
-                    invoke: {
-                        src: "fetchData",
-                        onError: [
-                            {
-                                actions: "assignErrorToContext",
-                                target: "#simpleDataFetch.idle.errored",
-                            },
-                        ],
-                    },
-                    on: {
-                        FETCH: {
-                            target: "fetching",
-                            internal: false,
-                        },
-                        CANCEL: {
-                            target: "idle",
-                        },
-                        RECEIVE_DATA: {
-                            actions: "assignDataToContext",
-                            target: "idle",
-                        },
-                    },
+interface Card {
+    number: number;
+}
+/** @xstate-layout N4IgpgJg5mDOIC5QGECGAnCAFANqgngLKoDGAFgJYB2YATAHQCCA7qhQC7VS4EDEADnnxpMiUPwD2sDhQlUxIAB6IAjADYALPQ0B2NQFYAzAA41AThUAGHbVsAaEPlUbL9M4bVqd+ryuOHLQ0MAX2CHEWwhYnJqOnoANVQcCghUTiooCN4FSWlOOQVlBA01Bg1aFVozM311Mw19MwcnBH0GQ1qDK0sVQz8q0PCMSIJoyhoGLHQJEjhpDKycqRkCpCVEY1odeiqqnXLLKpdaZudXd09vX39AkMGQKgkIOAUIniJScbiWNnTuISWeVk8jWRRUGjM2jMOl6hloXksNUMpwQtmM9GM3S8tAa8Ksxnubyin1iDESyVSfwigJWINARXhkMsEJsNhK-mRjg2WjUQUs5n0RnBtA8hOG7zGpPoUxmcy41LWuVphUQBi0MMsbR0-JMjSaXIQKm1bkq+h0xg0HP0xn2YswEpJEyYrEwXAA6tQafk6etDYcVPQdIZ9hp1Cpw9Z9S0VDUMWZeT1eiozT07SMPjEJl7gSrDbR9FCYUF4dqkSoUQBaY3Wln80yIipmUKhIA */
+const machine = createMachine({
+    context: { cardsPlayed: [] as Card[] },
+    predictableActionArguments: true,
+    entry: () => console.log("entered main machine"),
+    id: "CardPlayMachine2",
+    initial: "AwaitingPlay",
+    states: {
+        AwaitingPlay: {
+            on: {
+                playCard: {
+                    target: "ValidatingCard",
                 },
             },
         },
-        {
-            services: {
-                fetchData: () => () => {},
-            },
-            actions: {
-                assignDataToContext: assign((context, event) => {
-                    if (event.type !== "RECEIVE_DATA") return {};
-                    return {
-                        data: event.data,
-                    };
-                }),
+        ValidatingCard: {
+            always: [
+                {
+                    cond: isPlayValid,
+                    target: "ProcessingCard",
+                },
+                {
+                    target: "AwaitingPlay",
+                },
+            ],
+        },
+        ProcessingCard: {
+            entry: addPlayToContext,
+            always: [
+                {
+                    cond: isEndOfRound,
+                    target: "AwardingWin",
+                },
+                {
+                    target: "AwaitingPlay",
+                },
+            ],
+        },
+        AwardingWin: {
+            type: "final",
+        },
+    },
+});
 
-                assignErrorToContext: assign((context, event: any) => {
-                    return {
-                        errorMessage:
-                            event.data?.message || "An unknown error occurred",
-                    };
-                }),
-            },
-        }
-    );
-
-export default simpleDataFetchMachine;
+const service = interpret(machine);
+service.start();
+const exampleCardPlayEvent = { type: "playCard", card: { number: 7 } };
+service.send(exampleCardPlayEvent);
