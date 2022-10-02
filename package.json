@@ -1,0 +1,15 @@
+{
+  "name": "xstate-questions",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "nbogie",
+  "license": "MIT",
+  "devDependencies": {
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^4.8.4",
+    "xstate": "^4.33.6"
+  },
+  "scripts": {
+    "start": "ts-node-dev src/index.ts"
+  }
+}
