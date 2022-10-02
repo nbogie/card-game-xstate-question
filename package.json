@@ -10,6 +10,7 @@
     "xstate": "^4.33.6"
   },
   "scripts": {
-    "start": "ts-node-dev src/index.ts"
+    "start": "ts-node-dev src/index.ts",
+    "start3": "ts-node-dev src/compoundAttempt.ts"
   }
 }
